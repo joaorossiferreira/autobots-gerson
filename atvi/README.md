@@ -56,6 +56,23 @@ E para rodar:
 mvn spring-boot:run
 ```
 ---
+
+# 📌 Configuração de Ambiente
+```sh
+# Clone o repositório
+git clone https://github.com/joaorossiferreira/autobots-gerson.git
+
+# Entre na pasta do projeto
+cd automanager
+
+# Compile o projeto
+mvn clean install
+
+# Execute a aplicação
+mvn spring-boot:run
+```
+---
+
 ## ✅ Tudo pronto!
 ### Só acessar a rota **http://localhost:8080/** para começar
 <br><br>

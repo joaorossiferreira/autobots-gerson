@@ -42,12 +42,13 @@ source ~/.bashrc
 ```
 ---
 
----
 
 # 📌 Configuração de Ambiente
 ```sh
 # Clone o repositório
-git clone [seu-repositorio]
+git clone https://github.com/joaorossiferreira/autobots-gerson.git
+
+# Entre na pasta do projeto
 cd automanager
 
 # Compile o projeto
