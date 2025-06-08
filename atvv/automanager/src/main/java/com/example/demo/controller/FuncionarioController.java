@@ -1,12 +1,15 @@
 package com.example.demo.controller;
 
 import com.example.demo.entity.Funcionario;
+import com.example.demo.hateoas.HateoasResource;
 import com.example.demo.service.FuncionarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/funcionarios")
@@ -16,27 +19,76 @@ public class FuncionarioController {
     private FuncionarioService funcionarioService;
 
     @GetMapping
-    public List<Funcionario> listarTodos() {
-        return funcionarioService.listarTodos();
+    public List<HateoasResource<Funcionario>> listarTodos() {
+        return funcionarioService.listarTodos().stream().map(funcionario -> {
+            HateoasResource<Funcionario> resource = new HateoasResource<>(funcionario);
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+                    .buildAndExpand(funcionario.getId()).toUriString(),
+                "self"
+            );
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/funcionarios/loja/{lojaId}")
+                    .buildAndExpand(funcionario.getLoja().getId()).toUriString(),
+                "loja"
+            );
+            return resource;
+        }).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Funcionario> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<HateoasResource<Funcionario>> buscarPorId(@PathVariable Long id) {
         return funcionarioService.buscarPorId(id)
-                .map(ResponseEntity::ok)
+                .map(funcionario -> {
+                    HateoasResource<Funcionario> resource = new HateoasResource<>(funcionario);
+                    resource.addLink(
+                        ServletUriComponentsBuilder.fromCurrentRequest().toUriString(),
+                        "self"
+                    );
+                    resource.addLink(
+                        ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/funcionarios").toUriString(),
+                        "all"
+                    );
+                    resource.addLink(
+                        ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/funcionarios/loja/{lojaId}")
+                            .buildAndExpand(funcionario.getLoja().getId()).toUriString(),
+                        "loja"
+                    );
+                    return ResponseEntity.ok(resource);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Funcionario> salvar(@RequestBody Funcionario funcionario) {
-        return ResponseEntity.ok(funcionarioService.salvar(funcionario));
+    public ResponseEntity<HateoasResource<Funcionario>> salvar(@RequestBody Funcionario funcionario) {
+        Funcionario savedFuncionario = funcionarioService.salvar(funcionario);
+        HateoasResource<Funcionario> resource = new HateoasResource<>(savedFuncionario);
+        resource.addLink(
+            ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+                .buildAndExpand(savedFuncionario.getId()).toUriString(),
+            "self"
+        );
+        resource.addLink(
+            ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/funcionarios").toUriString(),
+            "all"
+        );
+        return ResponseEntity.ok(resource);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Funcionario> atualizar(@PathVariable Long id, @RequestBody Funcionario funcionarioAtualizado) {
+    public ResponseEntity<HateoasResource<Funcionario>> atualizar(@PathVariable Long id, @RequestBody Funcionario funcionarioAtualizado) {
         try {
             Funcionario funcionario = funcionarioService.atualizar(id, funcionarioAtualizado);
-            return ResponseEntity.ok(funcionario);
+            HateoasResource<Funcionario> resource = new HateoasResource<>(funcionario);
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentRequest().toUriString(),
+                "self"
+            );
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/funcionarios").toUriString(),
+                "all"
+            );
+            return ResponseEntity.ok(resource);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
@@ -49,7 +101,19 @@ public class FuncionarioController {
     }
 
     @GetMapping("/loja/{lojaId}")
-    public List<Funcionario> listarPorLoja(@PathVariable Long lojaId) {
-        return funcionarioService.listarPorLoja(lojaId);
+    public List<HateoasResource<Funcionario>> listarPorLoja(@PathVariable Long lojaId) {
+        return funcionarioService.listarPorLoja(lojaId).stream().map(funcionario -> {
+            HateoasResource<Funcionario> resource = new HateoasResource<>(funcionario);
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/funcionarios/{id}")
+                    .buildAndExpand(funcionario.getId()).toUriString(),
+                "self"
+            );
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentRequest().toUriString(),
+                "loja"
+            );
+            return resource;
+        }).collect(Collectors.toList());
     }
 }

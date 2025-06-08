@@ -13,13 +13,17 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToOne;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import com.autobots.automanager.modelos.Perfil;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @Entity
-public class Usuario {
+@EqualsAndHashCode(callSuper = false)
+public class Usuario extends RepresentationModel<Usuario> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

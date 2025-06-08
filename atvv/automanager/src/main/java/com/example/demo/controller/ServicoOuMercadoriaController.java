@@ -1,12 +1,15 @@
 package com.example.demo.controller;
 
 import com.example.demo.entity.ServicoOuMercadoria;
+import com.example.demo.hateoas.HateoasResource;
 import com.example.demo.service.ServicoOuMercadoriaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/servicos")
@@ -16,27 +19,76 @@ public class ServicoOuMercadoriaController {
     private ServicoOuMercadoriaService servicoOuMercadoriaService;
 
     @GetMapping
-    public List<ServicoOuMercadoria> listarTodos() {
-        return servicoOuMercadoriaService.listarTodos();
+    public List<HateoasResource<ServicoOuMercadoria>> listarTodos() {
+        return servicoOuMercadoriaService.listarTodos().stream().map(servico -> {
+            HateoasResource<ServicoOuMercadoria> resource = new HateoasResource<>(servico);
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+                    .buildAndExpand(servico.getId()).toUriString(),
+                "self"
+            );
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/servicos/loja/{lojaId}")
+                    .buildAndExpand(servico.getLoja().getId()).toUriString(),
+                "loja"
+            );
+            return resource;
+        }).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ServicoOuMercadoria> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<HateoasResource<ServicoOuMercadoria>> buscarPorId(@PathVariable Long id) {
         return servicoOuMercadoriaService.buscarPorId(id)
-                .map(ResponseEntity::ok)
+                .map(servico -> {
+                    HateoasResource<ServicoOuMercadoria> resource = new HateoasResource<>(servico);
+                    resource.addLink(
+                        ServletUriComponentsBuilder.fromCurrentRequest().toUriString(),
+                        "self"
+                    );
+                    resource.addLink(
+                        ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/servicos").toUriString(),
+                        "all"
+                    );
+                    resource.addLink(
+                        ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/servicos/loja/{lojaId}")
+                            .buildAndExpand(servico.getLoja().getId()).toUriString(),
+                        "loja"
+                    );
+                    return ResponseEntity.ok(resource);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<ServicoOuMercadoria> salvar(@RequestBody ServicoOuMercadoria servicoOuMercadoria) {
-        return ResponseEntity.ok(servicoOuMercadoriaService.salvar(servicoOuMercadoria));
+    public ResponseEntity<HateoasResource<ServicoOuMercadoria>> salvar(@RequestBody ServicoOuMercadoria servicoOuMercadoria) {
+        ServicoOuMercadoria savedServico = servicoOuMercadoriaService.salvar(servicoOuMercadoria);
+        HateoasResource<ServicoOuMercadoria> resource = new HateoasResource<>(savedServico);
+        resource.addLink(
+            ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+                .buildAndExpand(savedServico.getId()).toUriString(),
+            "self"
+        );
+        resource.addLink(
+            ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/servicos").toUriString(),
+            "all"
+        );
+        return ResponseEntity.ok(resource);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ServicoOuMercadoria> atualizar(@PathVariable Long id, @RequestBody ServicoOuMercadoria servicoAtualizado) {
+    public ResponseEntity<HateoasResource<ServicoOuMercadoria>> atualizar(@PathVariable Long id, @RequestBody ServicoOuMercadoria servicoAtualizado) {
         try {
             ServicoOuMercadoria servico = servicoOuMercadoriaService.atualizar(id, servicoAtualizado);
-            return ResponseEntity.ok(servico);
+            HateoasResource<ServicoOuMercadoria> resource = new HateoasResource<>(servico);
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentRequest().toUriString(),
+                "self"
+            );
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/servicos").toUriString(),
+                "all"
+            );
+            return ResponseEntity.ok(resource);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
@@ -49,7 +101,19 @@ public class ServicoOuMercadoriaController {
     }
 
     @GetMapping("/loja/{lojaId}")
-    public List<ServicoOuMercadoria> listarPorLoja(@PathVariable Long lojaId) {
-        return servicoOuMercadoriaService.listarPorLoja(lojaId);
+    public List<HateoasResource<ServicoOuMercadoria>> listarPorLoja(@PathVariable Long lojaId) {
+        return servicoOuMercadoriaService.listarPorLoja(lojaId).stream().map(servico -> {
+            HateoasResource<ServicoOuMercadoria> resource = new HateoasResource<>(servico);
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/servicos/{id}")
+                    .buildAndExpand(servico.getId()).toUriString(),
+                "self"
+            );
+            resource.addLink(
+                ServletUriComponentsBuilder.fromCurrentRequest().toUriString(),
+                "loja"
+            );
+            return resource;
+        }).collect(Collectors.toList());
     }
 }

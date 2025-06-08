@@ -8,11 +8,15 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToOne;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @Entity
-public class Cliente {
+@EqualsAndHashCode(callSuper = false)
+public class Cliente extends RepresentationModel<Cliente> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

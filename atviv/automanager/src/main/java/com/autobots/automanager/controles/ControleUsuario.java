@@ -16,48 +16,42 @@ import com.autobots.automanager.repositorios.RepositorioUsuario;
 
 @RestController
 @RequestMapping("/usuarios")
-public class ControleUsuario {
+public class ControleUsuario extends ControleBase<Usuario> {
 
-	@Autowired
-	private RepositorioUsuario repositorio;
+    @Autowired
+    private RepositorioUsuario repositorio;
 
-	@GetMapping("/listar")
-	@PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')") // Apenas ADMIN e GERENTE podem listar usuários
-	public ResponseEntity<List<Usuario>> listarUsuarios() {
-		List<Usuario> usuarios = repositorio.findAll();
-		if (usuarios.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		}
-		return new ResponseEntity<>(usuarios, HttpStatus.OK);
-	}
+    @GetMapping("/listar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+    public ResponseEntity<List<Usuario>> listarUsuarios() {
+        List<Usuario> usuarios = repositorio.findAll();
+        return configurarResposta(usuarios, this.getClass());
+    }
 
-	@GetMapping("/buscar/{id}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')") // Apenas ADMIN e GERENTE podem buscar por ID
-	public ResponseEntity<Usuario> buscarUsuario(@PathVariable Long id) {
-		Optional<Usuario> usuario = repositorio.findById(id);
-		if (usuario.isPresent()) {
-			return new ResponseEntity<>(usuario.get(), HttpStatus.OK);
-		}
-		return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-	}
+    @GetMapping("/buscar/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+    public ResponseEntity<Usuario> buscarUsuario(@PathVariable Long id) {
+        Optional<Usuario> usuario = repositorio.findById(id);
+        return usuario.map(value -> configurarResposta(value, this.getClass()))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
 
-	@PostMapping("/criar")
-	@PreAuthorize("hasRole('ADMIN')") // Apenas ADMIN pode criar usuários
-	public ResponseEntity<?> criarUsuario(@RequestBody Usuario usuario) {
-		BCryptPasswordEncoder codificador = new BCryptPasswordEncoder();
-		usuario.getCredencial().setSenha(codificador.encode(usuario.getCredencial().getSenha()));
-		repositorio.save(usuario);
-		return new ResponseEntity<>(HttpStatus.CREATED);
-	}
+    @PostMapping("/criar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> criarUsuario(@RequestBody Usuario usuario) {
+        BCryptPasswordEncoder codificador = new BCryptPasswordEncoder();
+        usuario.getCredencial().setSenha(codificador.encode(usuario.getCredencial().getSenha()));
+        repositorio.save(usuario);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
 
-	@DeleteMapping("/deletar/{id}")
-	@PreAuthorize("hasRole('ADMIN')") // Apenas ADMIN pode deletar usuários
-	public ResponseEntity<?> deletarUsuario(@PathVariable Long id) {
-		Optional<Usuario> usuario = repositorio.findById(id);
-		if (usuario.isPresent()) {
-			repositorio.delete(usuario.get());
-			return new ResponseEntity<>(HttpStatus.OK);
-		}
-		return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-	}
+    @DeleteMapping("/deletar/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deletarUsuario(@PathVariable Long id) {
+        if (repositorio.existsById(id)) {
+            repositorio.deleteById(id);
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
 }
